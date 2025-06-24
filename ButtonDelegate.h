@@ -1,0 +1,4 @@
+#ifndef BUTTONDELEGATE_H
+#define BUTTONDELEGATE_H
+
+#endif // BUTTONDELEGATE_H
