@@ -38,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     QTimer::singleShot(0, this, &MainWindow::loadFolderTree);
     QTimer::singleShot(0, this, &MainWindow::loadBlogsToManagingView);
 
-    // QTimer::singleShot(0, this, &MainWindow::startHexoProcess);
+    QTimer::singleShot(0, this, &MainWindow::startHexoProcess);
 
     // QTimer::singleShot(0, this, &MainWindow::getTagsFromPosts);
 
@@ -47,6 +47,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->deleteCategoryBtn->setEnabled(false);
 
     ui->addCategoryBtn->setEnabled(false);
+
+    connect(ui->tabWidget, &QTabWidget::currentChanged, this, &MainWindow::on_tabWidget_currentChanged);
 
     connect(ui->changeHexoBtn, &QPushButton::clicked, this, &MainWindow::on_changeHexoBtn_clicked);
 
@@ -59,6 +61,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+//添加展示tags的组件
 void MainWindow::addListViewToFrames(){
 
     MainWindow::getTagsFromPosts();
@@ -75,11 +78,13 @@ void MainWindow::addListViewToFrames(){
     }
 }
 
+//从hexo项目中获取tags，更新ui
 void MainWindow::getTagsFromPosts(){
     QDir tags_path(MainWindow::hexoProgPath + QString("/public/tags"));
     MainWindow::tags = tags_path.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 }
 
+//检查配置文件
 void MainWindow::setConf()
 {
     QString confFilePath = "./GenBlogSetting.conf";
@@ -138,6 +143,18 @@ void MainWindow::setConf()
     ui->HexoProgPathShow->setText("当前hexo目录为 " + hexoPath);
 }
 
+void MainWindow::on_tabWidget_currentChanged(int index)
+{
+    if (index == 0) {
+        // 第一个选项卡
+        addListViewToFrames();
+        loadFolderTree();
+    } else if (index == 1) {
+        // 第二个选项卡
+        loadBlogsToManagingView();
+    }
+}
+
 void MainWindow::on_draftBox_stateChanged(int arg1)
 {
     if(arg1 == Qt::CheckState::Checked){
@@ -175,6 +192,7 @@ void MainWindow::on_generateBtn_clicked()
     MainWindow::createNewBlog();
 }
 
+//新建博客
 void MainWindow::createNewBlog()
 {
     QString blog_name = ui->titleEdit->toPlainText().trimmed();
@@ -192,7 +210,7 @@ void MainWindow::createNewBlog()
     QString blogT = (blogtype == "draft") ? "_drafts" : "_posts";
     QString targetFilePath = MainWindow::hexoProgPath + "/source/" + blogT + "/" + blog_name + ".md";
 
-    QTimer::singleShot(3000, this, [=]() {
+    QTimer::singleShot(5000, this, [=]() {
         if (QFile::exists(targetFilePath)) {
             QMessageBox::information(this, "创建成功", "成功创建文章: \n" + targetFilePath);
 
@@ -221,6 +239,7 @@ void MainWindow::createNewBlog()
     });
 }
 
+//添加tags、categories
 void MainWindow::modifyBlogProperties(const QString targetFilePath, const QStringList &tags, const QStringList &categories, const QString &description) {
     QFile file(targetFilePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -293,6 +312,7 @@ void MainWindow::modifyBlogProperties(const QString targetFilePath, const QStrin
     QMessageBox::information(this, "更新成功", "文章头部信息已成功更新！");
 }
 
+//创建完成后使用系统默认应用打开文章
 void MainWindow::openMarkdownWithSystemDefault(const QString &filePath)
 {
     QFileInfo info(filePath);
@@ -313,6 +333,7 @@ void MainWindow::on_openDirBtn_clicked()
     QDesktopServices::openUrl(QUrl::fromLocalFile(MainWindow::hexoProgPath));
 }
 
+//从hexo项目获取categories，更新ui
 QStringList MainWindow::getCategories(){
     QModelIndex current = ui->categoriesTree->currentIndex();
     if (!current.isValid()) return QStringList();
@@ -333,6 +354,7 @@ QStringList MainWindow::getCategories(){
     // qDebug() << "选中项路径（不含根）:" << fullPath;
 }
 
+//更新项目目录后重启应用
 void restartApplication() {
     QString program = QCoreApplication::applicationFilePath();
     QStringList arguments = QCoreApplication::arguments();
@@ -380,6 +402,7 @@ void MainWindow::on_deleteTagBtn_clicked()
     // qDebug() << "剩余的 tags：" << addedTags;
 }
 
+//加载categories
 void MainWindow::loadFolderTree() {
 
     QString rootPath = MainWindow::hexoProgPath + QString("/public/categories");
@@ -508,6 +531,7 @@ void MainWindow::onNewCategoriyEditChanged(const QString &arg1){
     }
 }
 
+//加载所有文章到管理界面
 void MainWindow::loadBlogsToManagingView() {
     if (MainWindow::hexoProgPath.isEmpty())
         return;
@@ -542,11 +566,13 @@ void MainWindow::loadBlogsToManagingView() {
     connect(ui->draftsList, &QListWidget::itemDoubleClicked, this, &MainWindow::openFileFromItem);
 }
 
+//实现双击打开文章
 void MainWindow::openFileFromItem(QListWidgetItem *item) {
     QString filePath = item->data(Qt::UserRole).toString();
     QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
 }
 
+//程序启动时，启动一个线程用来执行hexo命令
 void MainWindow::startHexoProcess()
 {
     QString bashPath;
@@ -616,6 +642,7 @@ void MainWindow::startHexoProcess()
     // QTimer::singleShot(0, this, &MainWindow::loadBlogsToManagingView);
 }
 
+//执行hexo命令
 void MainWindow::runHexoCommand(const QString& command)
 {
     if (!hexoProcess || hexoProcess->state() != QProcess::Running) {
@@ -722,6 +749,7 @@ void MainWindow::on_hexo_generate_btn_clicked()
     QMessageBox::information(this, "生成完成", "已执行 hexo generate（生成静态文件）。");
 }
 
+//实现终止hexo server的函数，未实现
 void MainWindow::openCMDWithPortCommand() {
     QString command = QString(
                           "for /f \"tokens=5\" %a in ('netstat -ano ^| find \":%1\" ^| find \"LISTENING\"') do taskkill /PID %a /F"
@@ -734,6 +762,7 @@ void MainWindow::openCMDWithPortCommand() {
     QProcess::startDetached(fullCmd);
 }
 
+//重新选择路径
 void MainWindow::ChooseSettingFIlePath()
 {
     // 选择 Hexo 项目目录
