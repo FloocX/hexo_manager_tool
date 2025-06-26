@@ -1,0 +1,79 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-5c95369212fc749848ac.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "hexo_blogs_tools",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "hexo_blogs_tools::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-hexo_blogs_tools-Debug-f6f98b34fb1a78bcd87b.json",
+					"name" : "hexo_blogs_tools",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "hexo_blogs_tools_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-hexo_blogs_tools_autogen-Debug-b76d430e114145363595.json",
+					"name" : "hexo_blogs_tools_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "hexo_blogs_tools_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-hexo_blogs_tools_autogen_timestamp_deps-Debug-1d6f62d8f9c0727941d9.json",
+					"name" : "hexo_blogs_tools_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/86158/Desktop/language project/qt/hexo_blogs_tools/build/Desktop_Qt_6_10_0_MinGW_64_bit-Debug",
+		"source" : "C:/Users/86158/Desktop/language project/qt/hexo_blogs_tools"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

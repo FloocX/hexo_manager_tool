@@ -170,7 +170,7 @@ void MainWindow::on_generateBtn_clicked()
         return;
     }
 
-    if (!isDraftChecked || !isPostChecked) {
+    if (!isDraftChecked && !isPostChecked) {
         QMessageBox::warning(this, "文章类型未选", "请勾选文章类型！");
         return;
     }
@@ -193,10 +193,22 @@ void MainWindow::createNewBlog()
     runHexoCommand(hexoCmd);
 
     QString blogT = (blogtype == "draft") ? "_drafts" : "_posts";
-    QString targetFilePath = MainWindow::hexoProgPath + "/source/" + blogT + "/" + blog_name + ".md";
+    QString targetFilePath = MainWindow::hexoProgPath + "/source/" + blogT + "/" + blog_name.replace(" ", "-") + ".md";
 
-    QTimer::singleShot(5000, this, [=]() {
+    // qDebug()<<targetFilePath;
+
+    ui->HexoProgPathShow->setText(targetFilePath);
+
+    QTimer *checkTimer = new QTimer(this);
+    checkTimer->setInterval(500); // 每500ms检查一次
+
+    connect(checkTimer, &QTimer::timeout, this, [=]() {
+        // qDebug()<<targetFilePath;
         if (QFile::exists(targetFilePath)) {
+            checkTimer->stop();  // 停止定时器
+            checkTimer->deleteLater(); // 清理定时器
+
+
             QMessageBox::information(this, "创建成功", "成功创建文章: \n" + targetFilePath);
 
             QStringList selectedTags = MainWindow::tags_view->getSelectedItems();
@@ -216,11 +228,12 @@ void MainWindow::createNewBlog()
 
             MainWindow::modifyBlogProperties(targetFilePath, selectedTags, selectedCategory, description);
             MainWindow::openMarkdownWithSystemDefault(targetFilePath);
-
-        } else {
-            QMessageBox::warning(this, "生成失败", "未找到生成的文件: \n" + targetFilePath);
         }
     });
+
+    // 启动检测
+    checkTimer->start();
+
 }
 
 //添加tags、categories
