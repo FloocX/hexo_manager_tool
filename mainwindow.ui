@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>hexo博客管理GUI By Flooc</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>resources/favicon.ico</normaloff>resources/favicon.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">

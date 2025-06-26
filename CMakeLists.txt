@@ -25,7 +25,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         MyStringView.h
         MyStringView.cpp
-
+        # app_icon.rc
 
 
 

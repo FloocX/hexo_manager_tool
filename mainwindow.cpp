@@ -20,10 +20,7 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <windows.h>
-// #include "MyStringView.h"
 #include <iostream>
-// #include "tablemodel.h"
-// #include "buttondelegate.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -32,15 +29,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     MainWindow::setConf();
-    // QTimer::singleShot(0, this, &MainWindow::setConf);
 
     QTimer::singleShot(0, this, &MainWindow::addListViewToFrames);
     QTimer::singleShot(0, this, &MainWindow::loadFolderTree);
     QTimer::singleShot(0, this, &MainWindow::loadBlogsToManagingView);
 
     QTimer::singleShot(0, this, &MainWindow::startHexoProcess);
-
-    // QTimer::singleShot(0, this, &MainWindow::getTagsFromPosts);
 
     ui->addTagBtn->setEnabled(false);
 
@@ -90,7 +84,6 @@ void MainWindow::setConf()
     QString confFilePath = "./GenBlogSetting.conf";
     QString hexoPath, bashPath;
 
-    // 先尝试读取配置文件
     QFile confFile(confFilePath);
     if (confFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&confFile);
@@ -100,7 +93,6 @@ void MainWindow::setConf()
     }
 
     bool needChoose = false;
-    // 判断配置文件中路径是否有效
     if (hexoPath.isEmpty() || !QDir(hexoPath).exists()) {
         needChoose = true;
     }
@@ -108,15 +100,12 @@ void MainWindow::setConf()
         needChoose = true;
     }
 
-    // 如果有任一路径无效，弹窗让用户重新选择
     if (needChoose) {
-        // 选择 Hexo 项目目录
         hexoPath = QFileDialog::getExistingDirectory(this, "选择 Hexo 项目目录");
-        if (hexoPath.isEmpty()) return; // 取消选择则直接返回
+        if (hexoPath.isEmpty()) return;
 
-        // 选择 Git Bash 目录
         QString bashDir = QFileDialog::getExistingDirectory(this, "选择 Git Bash 的 bin 目录");
-        if (bashDir.isEmpty()) return; // 取消选择则直接返回
+        if (bashDir.isEmpty()) return;
 
         QString tryBashPath = QDir(bashDir).absoluteFilePath("bash.exe");
         if (!QFile::exists(tryBashPath)) {
@@ -125,7 +114,6 @@ void MainWindow::setConf()
         }
         bashPath = tryBashPath;
 
-        // 一次性覆盖写入配置文件
         QFile writeFile(confFilePath);
         if (writeFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream out(&writeFile);
@@ -137,7 +125,6 @@ void MainWindow::setConf()
         }
     }
 
-    // 更新类成员和UI显示
     MainWindow::hexoProgPath = hexoPath;
     MainWindow::bashPath = bashPath;
     ui->HexoProgPathShow->setText("当前hexo目录为 " + hexoPath);
@@ -146,11 +133,9 @@ void MainWindow::setConf()
 void MainWindow::on_tabWidget_currentChanged(int index)
 {
     if (index == 0) {
-        // 第一个选项卡
         addListViewToFrames();
         loadFolderTree();
     } else if (index == 1) {
-        // 第二个选项卡
         loadBlogsToManagingView();
     }
 }
@@ -177,14 +162,15 @@ void MainWindow::on_generateBtn_clicked()
 {
     QString title = ui->titleEdit->toPlainText().trimmed();
     bool isDraftChecked = ui->draftBox->isChecked();
+    bool isPostChecked = ui->postBox->isChecked();
+
 
     if (title.isEmpty()) {
         QMessageBox::warning(this, "缺少标题", "请填写博客标题！");
         return;
     }
 
-    // 如果 draftBox 是唯一类型控件，确保已选择
-    if (!isDraftChecked /* && 还有其他类型控件未选中 */) {
+    if (!isDraftChecked || !isPostChecked) {
         QMessageBox::warning(this, "文章类型未选", "请勾选文章类型！");
         return;
     }
@@ -206,7 +192,6 @@ void MainWindow::createNewBlog()
 
     runHexoCommand(hexoCmd);
 
-    // === 启动一个定时器轮询文件是否生成 ===
     QString blogT = (blogtype == "draft") ? "_drafts" : "_posts";
     QString targetFilePath = MainWindow::hexoProgPath + "/source/" + blogT + "/" + blog_name + ".md";
 
@@ -218,7 +203,6 @@ void MainWindow::createNewBlog()
             QStringList selectedCategory = MainWindow::getCategories();
             QString description = ui->descriptionEdit->toPlainText();
 
-            // 清除“（新）”标识（中文括号）
             for (QString &tag : selectedTags) {
                 if (tag.endsWith("(新)")) {
                     tag.chop(3);
@@ -251,7 +235,6 @@ void MainWindow::modifyBlogProperties(const QString targetFilePath, const QStrin
     QString content = QString::fromUtf8(fileData);
     file.close();
 
-    // 查找 YAML Front Matter 的位置
     int start = content.indexOf("---");
     int end = content.indexOf("---", start + 3);
     if (start == -1 || end == -1 || end <= start) {
@@ -259,7 +242,6 @@ void MainWindow::modifyBlogProperties(const QString targetFilePath, const QStrin
         return;
     }
 
-    // 获取 title（如果有）
     QString titleLine;
     QStringList lines = content.mid(start + 3, end - (start + 3)).split('\n');
     for (const QString &line : lines) {
@@ -274,7 +256,6 @@ void MainWindow::modifyBlogProperties(const QString targetFilePath, const QStrin
         titleLine = "title: " + info.baseName() + "\n";
     }
 
-    // 构造 front matter
     QString frontMatter;
     frontMatter += "---\n";
     frontMatter += titleLine;
@@ -298,9 +279,8 @@ void MainWindow::modifyBlogProperties(const QString targetFilePath, const QStrin
 
     frontMatter += "---";
 
-    QString body = content.mid(end + 3);  // 正文部分
+    QString body = content.mid(end + 3);
 
-    // 写入文件
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         QMessageBox::warning(this, "错误", "无法写入文件：" + targetFilePath);
         return;
@@ -321,7 +301,6 @@ void MainWindow::openMarkdownWithSystemDefault(const QString &filePath)
         return;
     }
 
-    // 使用系统默认程序打开文件
     bool success = QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
     if (!success) {
         QMessageBox::warning(this, "打开失败", "无法使用系统默认程序打开：\n" + filePath);
@@ -351,7 +330,7 @@ QStringList MainWindow::getCategories(){
     return pathParts;
 
     // QString fullPath = pathParts.join("/");
-    // qDebug() << "选中项路径（不含根）:" << fullPath;
+    // qDebug() << "选中项路径:" << fullPath;
 }
 
 //更新项目目录后重启应用
@@ -364,7 +343,7 @@ void restartApplication() {
         QProcess::startDetached(program, arguments);
     });
 
-    QCoreApplication::quit();  // 先退出当前应用
+    QCoreApplication::quit();
 }
 
 void MainWindow::on_changeHexoBtn_clicked()
@@ -378,7 +357,6 @@ void MainWindow::on_addTagBtn_clicked()
 {
     QString tagToAdd = ui->newTagToAddEdit->text();
     MainWindow::new_tags.append(tagToAdd);
-    // const QStringList new_tags = MainWindow::new_tags;
 
     MainWindow::tags_view->addStringList(tagToAdd, ui->frame_7);
 
@@ -392,12 +370,10 @@ void MainWindow::on_deleteTagBtn_clicked()
 {
     QStringList removed = MainWindow::tags_view->deleteSelectedNewTags();
 
-    // 从维护的 addedTags 中移除对应项
     for (const QString &tag : removed) {
         addedTags.removeAll(tag);
     }
 
-    // // 调试输出
     // qDebug() << "删除的 tags：" << removed;
     // qDebug() << "剩余的 tags：" << addedTags;
 }
@@ -440,7 +416,7 @@ void MainWindow::buildTreeRecursive(QStandardItem *parentItem, const QString &pa
         QStandardItem *item = new QStandardItem(entry.fileName());
         parentItem->appendRow(item);
 
-        buildTreeRecursive(item, entry.absoluteFilePath()); // 递归子目录
+        buildTreeRecursive(item, entry.absoluteFilePath());
     }
 }
 
@@ -452,7 +428,6 @@ void MainWindow::onCategorySelectionChanged(const QItemSelection &selected, cons
     if (!indexes.isEmpty()) {
         QModelIndex current = indexes.first();
 
-        // 读取自定义role，判断是否是新增项
         bool isNew = current.data(Qt::UserRole + 1).toBool();
         // qDebug()<<current.data();
 
@@ -472,14 +447,12 @@ void MainWindow::on_addCategoryBtn_clicked()
 
     QString displayText = newText + " (新)";
 
-    // 获取当前模型（假设你用的是 QStandardItemModel）
     QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->categoriesTree->model());
     if (!model) return;
 
     QStandardItem *parentItem = model->itemFromIndex(current);
     if (!parentItem) return;
 
-    // 判断是否已经存在同名子项
     for (int i = 0; i < parentItem->rowCount(); ++i) {
         QString childText = parentItem->child(i)->text();
         if (childText == displayText || childText == newText) {
@@ -488,16 +461,12 @@ void MainWindow::on_addCategoryBtn_clicked()
         }
     }
 
-    // 创建新子项
     QStandardItem *newItem = new QStandardItem(displayText);
-    // 可选：设置数据标识这是新增的（用于后续处理）
-    newItem->setData(true, Qt::UserRole + 1);  // 标记为“新增项”
+    newItem->setData(true, Qt::UserRole + 1);
     parentItem->appendRow(newItem);
 
-    // 展开当前项以显示新子项
     ui->categoriesTree->expand(current);
 
-    // 清空输入框
     ui->newCategoryEdit->clear();
 }
 
@@ -515,10 +484,8 @@ void MainWindow::on_deleteCategoryBtn_clicked()
     QStandardItem *parent = item->parent();
 
     if (parent) {
-        // 删除子项
         parent->removeRow(item->row());
     } else {
-        // 没有父项，说明是顶层节点，直接删除
         model->removeRow(item->row());
     }
 }
@@ -536,24 +503,20 @@ void MainWindow::loadBlogsToManagingView() {
     if (MainWindow::hexoProgPath.isEmpty())
         return;
 
-    // 构建路径
     QString postsPath = MainWindow::hexoProgPath + "/source/_posts";
     QString draftsPath = MainWindow::hexoProgPath + "/source/_drafts";
 
-    // 清空列表
     ui->postsList->clear();
     ui->draftsList->clear();
 
-    // 添加posts
     QDir postsDir(postsPath);
     QFileInfoList postsFiles = postsDir.entryInfoList(QStringList() << "*.md", QDir::Files);
     for (const QFileInfo &fileInfo : postsFiles) {
         QListWidgetItem *item = new QListWidgetItem(fileInfo.fileName().replace(".md", ""));
-        item->setData(Qt::UserRole, fileInfo.absoluteFilePath());  // 保存完整路径
+        item->setData(Qt::UserRole, fileInfo.absoluteFilePath());
         ui->postsList->addItem(item);
     }
 
-    // 添加drafts
     QDir draftsDir(draftsPath);
     QFileInfoList draftsFiles = draftsDir.entryInfoList(QStringList() << "*.md", QDir::Files);
     for (const QFileInfo &fileInfo : draftsFiles) {
@@ -578,7 +541,6 @@ void MainWindow::startHexoProcess()
     QString bashPath;
     QString confFilePath = "./GenBlogSetting.conf";
 
-    // === 读取 bashPath ===
     QFile confFile(confFilePath);
     if (confFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&confFile);
@@ -590,7 +552,6 @@ void MainWindow::startHexoProcess()
         confFile.close();
     }
 
-    // === 手动选择 bash.exe 路径 ===
     if (bashPath.isEmpty()) {
         QMessageBox::information(this, "Git Bash 未找到", "系统中未检测到 Git Bash，请手动选择包含 bash.exe 的 Git 安装目录。");
         QString dir = QFileDialog::getExistingDirectory(this, "请选择 Git Bash 的 bin 目录（包含 bash.exe）");
@@ -613,7 +574,6 @@ void MainWindow::startHexoProcess()
         }
     }
 
-    // === 启动持久 Git Bash 进程 ===
     hexoProcess = new QProcess(this);
     hexoProcess->setProgram(bashPath);
     hexoProcess->setProcessChannelMode(QProcess::MergedChannels);
@@ -624,7 +584,6 @@ void MainWindow::startHexoProcess()
         return;
     }
 
-    // 进入 Hexo 项目路径
     QString cdCmd = QString("cd \"%1\"\n").arg(MainWindow::hexoProgPath);
     hexoProcess->write(cdCmd.toUtf8());
 
@@ -637,9 +596,6 @@ void MainWindow::startHexoProcess()
     MainWindow::addListViewToFrames();
     MainWindow::loadFolderTree();
     MainWindow::loadBlogsToManagingView();
-    // QTimer::singleShot(0, this, &MainWindow::addListViewToFrames);
-    // QTimer::singleShot(0, this, &MainWindow::loadFolderTree);
-    // QTimer::singleShot(0, this, &MainWindow::loadBlogsToManagingView);
 }
 
 //执行hexo命令
@@ -650,14 +606,12 @@ void MainWindow::runHexoCommand(const QString& command)
         return;
     }
 
-    // 在命令结尾加上 \n（bash 会执行）
     QString cmd = command + "\n";
     hexoProcess->write(cmd.toUtf8());
 }
 
 void MainWindow::on_hexo_delete_btn_clicked()
 {
-    // 获取当前选中的 QListWidgetItem
     QList<QListWidgetItem*> currentItems;
 
     if (ui->postsList->hasFocus()) {
@@ -671,11 +625,9 @@ void MainWindow::on_hexo_delete_btn_clicked()
         return;
     }
 
-    // 获取该项对应的完整文件路径
     for(QListWidgetItem * currentItem : currentItems){
         QString filePath = currentItem->data(Qt::UserRole).toString();
 
-        // 确认删除
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(this, "确认删除",
                                       QString("确定要删除这篇文章吗？\n\n%1").arg(filePath),
@@ -683,7 +635,6 @@ void MainWindow::on_hexo_delete_btn_clicked()
         if (reply != QMessageBox::Yes)
             return;
 
-        // 尝试删除文件
         QFile file(filePath);
         if (!file.exists()) {
             QMessageBox::warning(this, "错误", "文件不存在，无法删除！");
@@ -697,13 +648,11 @@ void MainWindow::on_hexo_delete_btn_clicked()
 
     }
 
-    // 重新加载列表
     loadBlogsToManagingView();
 }
 
 void MainWindow::on_hexo_publish_btn_clicked()
 {
-    // 获取当前选中的 QListWidgetItem（只处理 draftsList）
     QListWidgetItem *currentItem = ui->draftsList->currentItem();
 
     if (!currentItem) {
@@ -713,16 +662,13 @@ void MainWindow::on_hexo_publish_btn_clicked()
 
     QString draftName = currentItem->text();
 
-    // 构建命令
     QString command = QString("hexo publish \"%1\"").arg(draftName);
 
-    // 执行命令
     QProcess process;
-    process.setWorkingDirectory(MainWindow::hexoProgPath); // 设置 hexo 项目路径
+    process.setWorkingDirectory(MainWindow::hexoProgPath);
     process.start(command);
-    process.waitForFinished(-1); // 等待执行完成
+    process.waitForFinished(-1);
 
-    // 检查结果
     QString stdOutput = process.readAllStandardOutput();
     QString errOutput = process.readAllStandardError();
 
@@ -731,7 +677,6 @@ void MainWindow::on_hexo_publish_btn_clicked()
         return;
     }
 
-    // 发布成功，刷新列表
     loadBlogsToManagingView();
 
     QMessageBox::information(this, "成功", "发布成功:\n" + stdOutput);
@@ -755,24 +700,20 @@ void MainWindow::openCMDWithPortCommand() {
                           "for /f \"tokens=5\" %a in ('netstat -ano ^| find \":%1\" ^| find \"LISTENING\"') do taskkill /PID %a /F"
                           ).arg(hexo_server_port);
 
-    // 拼接为完整的 cmd 执行命令
     QString fullCmd = QString("cmd.exe /K \"%1 & echo. & echo 执行完毕。 & pause\"").arg(command);
 
-    // 启动一个可见 CMD 窗口并执行命令
     QProcess::startDetached(fullCmd);
 }
 
 //重新选择路径
 void MainWindow::ChooseSettingFIlePath()
 {
-    // 选择 Hexo 项目目录
     QString hexoPath = QFileDialog::getExistingDirectory(this, "请选择 Hexo 项目目录");
-    if (hexoPath.isEmpty()) return; // 用户取消
+    if (hexoPath.isEmpty()) return;
 
-    // 选择 Git Bash 的 bin 目录（包含 bash.exe）
     QMessageBox::information(this, "请选择 Git Bash 目录", "请选择包含 bash.exe 的 Git Bash bin 目录。");
     QString gitBashDir = QFileDialog::getExistingDirectory(this, "请选择 Git Bash 的 bin 目录");
-    if (gitBashDir.isEmpty()) return; // 用户取消
+    if (gitBashDir.isEmpty()) return;
 
     QString bashExePath = QDir(gitBashDir).absoluteFilePath("bash.exe");
     if (!QFile::exists(bashExePath)) {
@@ -780,7 +721,6 @@ void MainWindow::ChooseSettingFIlePath()
         return;
     }
 
-    // 写入配置文件（覆盖写入）
     QString confFilePath = "./GenBlogSetting.conf";
     QFile confFile(confFilePath);
     if (!confFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -792,7 +732,6 @@ void MainWindow::ChooseSettingFIlePath()
     out << hexoPath << "\n" << bashExePath << "\n";
     confFile.close();
 
-    // 更新成员变量及界面显示
     MainWindow::hexoProgPath = hexoPath;
     MainWindow::bashPath = bashExePath;
 
@@ -803,7 +742,7 @@ void MainWindow::ChooseSettingFIlePath()
 
 void MainWindow::on_hexo_server_btn_clicked()
 {
-    QString port = "4000"; // 默认端口
+    QString port = "4000";
 
     if (isHexoServerRunning) {
         openCMDWithPortCommand();
@@ -811,7 +750,6 @@ void MainWindow::on_hexo_server_btn_clicked()
         return;
     }
 
-    // 从 index.js 提取端口
     QString indexJsPath = MainWindow::hexoProgPath + "/node_modules/hexo-server/index.js";
     QFile jsFile(indexJsPath);
     if (jsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -830,7 +768,6 @@ void MainWindow::on_hexo_server_btn_clicked()
         jsFile.close();
     }
 
-    // 运行命令
     MainWindow::runHexoCommand("hexo server");
     isHexoServerRunning = true;
 
